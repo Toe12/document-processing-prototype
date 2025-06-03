@@ -1,5 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { Card, List, Tag, Button, Typography, Space, Modal } from "antd";
+import { useState, useEffect } from "react";
+import {
+  Card,
+  List,
+  Tag,
+  Button,
+  Typography,
+  Space,
+  Modal,
+  Collapse,
+} from "antd";
 import {
   FileImageOutlined,
   FilePdfOutlined,
@@ -9,16 +18,17 @@ import {
   ExclamationCircleOutlined,
   EyeOutlined,
 } from "@ant-design/icons";
+import "./DocumentStatus.css"; // Import the CSS file
 
 const { Title, Text } = Typography;
+const { Panel } = Collapse;
 
 const DocumentStatus = () => {
   const [documents, setDocuments] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
 
-  // TODO: Replace with API call to fetch documents
-  // hardcoded: Sample documents with different statuses
+  // Sample documents with different statuses
   const sampleDocuments = [
     {
       id: 1,
@@ -153,6 +163,15 @@ const DocumentStatus = () => {
     },
   };
 
+  // Group documents by status
+  const groupedDocuments = documents.reduce((acc, doc) => {
+    if (!acc[doc.status]) {
+      acc[doc.status] = [];
+    }
+    acc[doc.status].push(doc);
+    return acc;
+  }, {});
+
   // Handle view document
   const handleViewDocument = (doc) => {
     setSelectedDocument(doc);
@@ -164,12 +183,13 @@ const DocumentStatus = () => {
     setIsModalVisible(false);
     setSelectedDocument(null);
   };
+
   // Get file icon
   const getFileIcon = (type) => {
     return type === "pdf" ? (
-      <FilePdfOutlined style={{ fontSize: "24px", color: "#f5222d" }} />
+      <FilePdfOutlined className="file-icon-pdf" />
     ) : (
-      <FileImageOutlined style={{ fontSize: "24px", color: "#52c41a" }} />
+      <FileImageOutlined className="file-icon-image" />
     );
   };
 
@@ -211,173 +231,208 @@ const DocumentStatus = () => {
 
   const statusCounts = getStatusCounts();
 
+  // Define the order of statuses
+  const statusOrder = ["need_approval", "processing", "approved", "rejected"];
+
   return (
-    <div style={{ padding: "24px", maxWidth: "1000px", margin: "0 auto" }}>
-      <Title level={3}>Document Processing Status</Title>
-      <Text type="secondary">
-        Monitor and manage document processing workflow
-      </Text>
+    <div className="document-status-container">
+      <div className="document-status-header">
+        <Title level={3} className="document-status-title">
+          Document Processing Status
+        </Title>
+        <Text type="secondary" className="document-status-subtitle">
+          Monitor and manage document processing workflow
+        </Text>
+      </div>
 
       {/* Status Summary */}
-      <Card
-        title="Processing Summary"
-        style={{ marginTop: "24px", marginBottom: "24px" }}
-      >
+      <Card title="Processing Summary" className="status-summary-card">
         <Space size="large" wrap>
-          <div>
-            <Text strong>Total Documents: </Text>
+          <div className="status-summary-item">
+            <Text strong className="status-summary-label">
+              Total Documents:{" "}
+            </Text>
             <Tag color="blue">{statusCounts.total}</Tag>
           </div>
-          <div>
-            <Text strong>Processing: </Text>
+          <div className="status-summary-item">
+            <Text strong className="status-summary-label">
+              Processing:{" "}
+            </Text>
             <Tag color="orange">{statusCounts.processing}</Tag>
           </div>
-          <div>
-            <Text strong>Need Approval: </Text>
+          <div className="status-summary-item">
+            <Text strong className="status-summary-label">
+              Need Approval:{" "}
+            </Text>
             <Tag color="purple">{statusCounts.need_approval}</Tag>
           </div>
-          <div>
-            <Text strong>Approved: </Text>
+          <div className="status-summary-item">
+            <Text strong className="status-summary-label">
+              Approved:{" "}
+            </Text>
             <Tag color="green">{statusCounts.approved}</Tag>
           </div>
-          <div>
-            <Text strong>Rejected: </Text>
+          <div className="status-summary-item">
+            <Text strong className="status-summary-label">
+              Rejected:{" "}
+            </Text>
             <Tag color="red">{statusCounts.rejected}</Tag>
           </div>
         </Space>
       </Card>
 
-      {/* Document List */}
-      <Card title="Document List">
-        <List
-          itemLayout="horizontal"
-          dataSource={documents}
-          renderItem={(doc) => (
-            <List.Item
-              actions={[
-                <Button
-                  type="text"
-                  icon={<EyeOutlined />}
-                  size="small"
-                  style={{ backgroundColor: "#ffffff", color: "#000000" }}
-                  onClick={() => handleViewDocument(doc)}
-                >
-                  View
-                </Button>,
-                ...(doc.status === "need_approval"
-                  ? [
-                      <Button
-                        size="small"
-                        onClick={() => handleApprove(doc.id)}
-                        style={{
-                          backgroundColor: "#ffffff",
-                          borderColor: "#52c41a",
-                          color: "#52c41a",
-                        }}
-                      >
-                        Approve
-                      </Button>,
-                      <Button
-                        size="small"
-                        onClick={() => handleReject(doc.id)}
-                        style={{
-                          backgroundColor: "#ffffff",
-                          borderColor: "#f5222d",
-                          color: "#f5222d",
-                        }}
-                      >
-                        Reject
-                      </Button>,
-                    ]
-                  : []),
-              ]}
-            >
-              <List.Item.Meta
-                avatar={getFileIcon(doc.type)}
-                title={
-                  <Space>
-                    <Text strong>{doc.name}</Text>
-                    <Tag color={doc.type === "pdf" ? "red" : "green"}>
-                      {doc.type.toUpperCase()}
-                    </Tag>
-                    <Tag
-                      color={statusConfig[doc.status].color}
-                      icon={statusConfig[doc.status].icon}
-                    >
-                      {statusConfig[doc.status].text}
-                    </Tag>
-                  </Space>
-                }
-                description={
-                  <Space
-                    direction="vertical"
-                    size="small"
-                    style={{ width: "100%" }}
-                  >
-                    <div>
-                      <Text type="secondary">Size: {doc.size} MB</Text>
-                      <Text type="secondary" style={{ marginLeft: "16px" }}>
-                        Uploaded: {doc.uploadedAt}
-                      </Text>
-                    </div>
+      {/* Grouped Document Lists */}
+      <Card title="Documents by Status" className="documents-grouped-card">
+        <Collapse
+          defaultActiveKey={["need_approval", "processing"]}
+          size="large"
+          className="status-collapse"
+        >
+          {statusOrder.map((status) => {
+            const docsInStatus = groupedDocuments[status] || [];
+            if (docsInStatus.length === 0) return null;
 
-                    {/* Show extracted data for documents needing approval */}
-                    {doc.status === "need_approval" && doc.extractedData && (
-                      <div
-                        style={{
-                          marginTop: "8px",
-                          padding: "12px",
-                          backgroundColor: "#f6f6f6",
-                          borderRadius: "6px",
-                          border: "1px solid #e8e8e8",
-                        }}
-                      >
-                        <Text
-                          strong
-                          style={{ fontSize: "12px", color: "#666" }}
+            return (
+              <Panel
+                header={
+                  <div className="status-panel-header">
+                    {statusConfig[status].icon}
+                    <Text strong>{statusConfig[status].text}</Text>
+                    <Tag color={statusConfig[status].color}>
+                      {docsInStatus.length}
+                    </Tag>
+                  </div>
+                }
+                key={status}
+              >
+                <List
+                  itemLayout="horizontal"
+                  dataSource={docsInStatus}
+                  renderItem={(doc) => (
+                    <List.Item
+                      className="document-list-item"
+                      actions={[
+                        <Button
+                          type="text"
+                          icon={<EyeOutlined />}
+                          size="small"
+                          className="action-button action-button-view"
+                          onClick={() => handleViewDocument(doc)}
                         >
-                          EXTRACTED INFORMATION:
-                        </Text>
-                        <div style={{ marginTop: "8px" }}>
-                          <div style={{ marginBottom: "4px" }}>
-                            <Text style={{ fontSize: "13px" }}>
-                              <Text strong>Name: </Text>
-                              {doc.extractedData.name}
-                            </Text>
-                          </div>
-                          <div style={{ marginBottom: "4px" }}>
-                            <Text style={{ fontSize: "13px" }}>
-                              <Text strong>Policy Number: </Text>
-                              {doc.extractedData.policyNumber}
-                            </Text>
-                          </div>
-                          <div style={{ marginBottom: "4px" }}>
-                            <Text style={{ fontSize: "13px" }}>
-                              <Text strong>VIN: </Text>
-                              {doc.extractedData.vin}
-                            </Text>
-                          </div>
-                          <div>
-                            <Text style={{ fontSize: "13px" }}>
-                              <Text strong>Expiration Date: </Text>
-                              {doc.extractedData.expirationDate}
-                            </Text>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                          View
+                        </Button>,
+                        ...(doc.status === "need_approval"
+                          ? [
+                              <Button
+                                size="small"
+                                onClick={() => handleApprove(doc.id)}
+                                className="action-button action-button-approve"
+                              >
+                                Approve
+                              </Button>,
+                              <Button
+                                size="small"
+                                onClick={() => handleReject(doc.id)}
+                                className="action-button action-button-reject"
+                              >
+                                Reject
+                              </Button>,
+                            ]
+                          : []),
+                      ]}
+                    >
+                      <List.Item.Meta
+                        avatar={getFileIcon(doc.type)}
+                        title={
+                          <Space>
+                            <Text strong>{doc.name}</Text>
+                            <Tag
+                              color={doc.type === "pdf" ? "red" : "green"}
+                              className={`file-type-tag-${doc.type}`}
+                            >
+                              {doc.type.toUpperCase()}
+                            </Tag>
+                          </Space>
+                        }
+                        description={
+                          <Space
+                            direction="vertical"
+                            size="small"
+                            style={{ width: "100%" }}
+                          >
+                            <div className="document-metadata">
+                              <Text
+                                type="secondary"
+                                className="document-metadata-item"
+                              >
+                                Size: {doc.size} MB
+                              </Text>
+                              <Text
+                                type="secondary"
+                                className="document-metadata-item"
+                              >
+                                Uploaded: {doc.uploadedAt}
+                              </Text>
+                            </div>
 
-                    {doc.status === "rejected" && doc.rejectionReason && (
-                      <Text type="danger" style={{ fontSize: "12px" }}>
-                        Reason: {doc.rejectionReason}
-                      </Text>
-                    )}
-                  </Space>
-                }
-              />
-            </List.Item>
-          )}
-        />
+                            {/* Show extracted data for documents needing approval */}
+                            {doc.status === "need_approval" &&
+                              doc.extractedData && (
+                                <div className="extracted-data-section">
+                                  <Text
+                                    strong
+                                    className="extracted-data-header"
+                                  >
+                                    EXTRACTED INFORMATION:
+                                  </Text>
+                                  <div className="extracted-data-content">
+                                    <div className="extracted-data-item">
+                                      <span className="extracted-data-label">
+                                        Name:{" "}
+                                      </span>
+                                      {doc.extractedData.name}
+                                    </div>
+                                    <div className="extracted-data-item">
+                                      <span className="extracted-data-label">
+                                        Policy Number:{" "}
+                                      </span>
+                                      {doc.extractedData.policyNumber}
+                                    </div>
+                                    <div className="extracted-data-item">
+                                      <span className="extracted-data-label">
+                                        VIN:{" "}
+                                      </span>
+                                      {doc.extractedData.vin}
+                                    </div>
+                                    <div className="extracted-data-item">
+                                      <span className="extracted-data-label">
+                                        Expiration Date:{" "}
+                                      </span>
+                                      {doc.extractedData.expirationDate}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                            {doc.status === "rejected" &&
+                              doc.rejectionReason && (
+                                <Text
+                                  type="danger"
+                                  className="rejection-reason"
+                                >
+                                  Reason: {doc.rejectionReason}
+                                </Text>
+                              )}
+                          </Space>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              </Panel>
+            );
+          })}
+        </Collapse>
       </Card>
 
       {/* Document Viewer Modal */}
@@ -393,26 +448,21 @@ const DocumentStatus = () => {
           <Button
             key="close"
             onClick={handleCloseModal}
-            style={{
-              backgroundColor: "#ffffff",
-              borderColor: "#d9d9d9",
-              color: "#000000",
-            }}
+            className="action-button"
           >
             Close
           </Button>,
         ]}
         width={800}
-        style={{ top: 20 }}
+        className="document-modal"
       >
         {selectedDocument && (
-          <div style={{ textAlign: "center" }}>
+          <div className="document-viewer">
             {selectedDocument.type === "pdf" ? (
               <iframe
                 src={selectedDocument.documentUrl}
                 width="100%"
                 height="600px"
-                style={{ border: "1px solid #d9d9d9", borderRadius: "4px" }}
                 title={`PDF Viewer - ${selectedDocument.name}`}
               />
             ) : (
@@ -422,32 +472,38 @@ const DocumentStatus = () => {
                 style={{
                   maxWidth: "100%",
                   maxHeight: "600px",
-                  border: "1px solid #d9d9d9",
-                  borderRadius: "4px",
                 }}
               />
             )}
 
-            <div style={{ marginTop: "16px", textAlign: "left" }}>
+            <div className="document-viewer-info">
               <Space direction="vertical" size="small">
-                <div>
-                  <Text strong>File: </Text>
+                <div className="document-viewer-info-item">
+                  <Text strong className="document-viewer-info-label">
+                    File:{" "}
+                  </Text>
                   <Text>{selectedDocument.name}</Text>
                 </div>
-                <div>
-                  <Text strong>Type: </Text>
+                <div className="document-viewer-info-item">
+                  <Text strong className="document-viewer-info-label">
+                    Type:{" "}
+                  </Text>
                   <Tag
                     color={selectedDocument.type === "pdf" ? "red" : "green"}
                   >
                     {selectedDocument.type.toUpperCase()}
                   </Tag>
                 </div>
-                <div>
-                  <Text strong>Size: </Text>
+                <div className="document-viewer-info-item">
+                  <Text strong className="document-viewer-info-label">
+                    Size:{" "}
+                  </Text>
                   <Text>{selectedDocument.size} MB</Text>
                 </div>
-                <div>
-                  <Text strong>Status: </Text>
+                <div className="document-viewer-info-item">
+                  <Text strong className="document-viewer-info-label">
+                    Status:{" "}
+                  </Text>
                   <Tag
                     color={statusConfig[selectedDocument.status].color}
                     icon={statusConfig[selectedDocument.status].icon}
@@ -455,8 +511,10 @@ const DocumentStatus = () => {
                     {statusConfig[selectedDocument.status].text}
                   </Tag>
                 </div>
-                <div>
-                  <Text strong>Uploaded: </Text>
+                <div className="document-viewer-info-item">
+                  <Text strong className="document-viewer-info-label">
+                    Uploaded:{" "}
+                  </Text>
                   <Text>{selectedDocument.uploadedAt}</Text>
                 </div>
               </Space>
